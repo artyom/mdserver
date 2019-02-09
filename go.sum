@@ -1,0 +1,8 @@
+github.com/artyom/autoflags v1.1.1 h1:8flRmpb7xpjLHFVcM+HN+cEEKLw+H5a2hABDbRvfG9A=
+github.com/artyom/autoflags v1.1.1/go.mod h1:Th9KgAVvFcYp7t8b//Pu21xHjExLpzr4SXCbwVbHL7Y=
+github.com/gomarkdown/markdown v0.0.0-20190203074024-f12dffcd0f4e h1:pTwv+zREUhuBKYaGyBNhK0WoPh0VXCSCGi77N9kv6oM=
+github.com/gomarkdown/markdown v0.0.0-20190203074024-f12dffcd0f4e/go.mod h1:gmFANS06wAVmF0B9yi65QKsRmPQ97tze7FRLswua+OY=
+github.com/microcosm-cc/bluemonday v1.0.2 h1:5lPfLTTAvAbtS0VqT+94yOtFnGfUWYyx0+iToC3Os3s=
+github.com/microcosm-cc/bluemonday v1.0.2/go.mod h1:iVP4YcDBq+n/5fb23BhYFvIMq/leAFZyRl6bYmGDlGc=
+golang.org/x/net v0.0.0-20181220203305-927f97764cc3 h1:eH6Eip3UpmR+yM/qI9Ijluzb1bNv/cAU/n+6l8tRSis=
+golang.org/x/net v0.0.0-20181220203305-927f97764cc3/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=

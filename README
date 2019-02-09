@@ -1,0 +1,9 @@
+Command mdserver is an http server serving single directory with markdown
+(.md) files. If can render automatically built index of those files and
+render them as html pages.
+
+Its main use-case is reading through directory with documentation written in
+markdown format, i.e. local copy of Github wiki.
+
+To access automatically generated index, request "/?index" path, as
+http://localhost:8080/?index.
