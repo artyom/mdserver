@@ -7,3 +7,7 @@ markdown format, i.e. local copy of Github wiki.
 
 To access automatically generated index, request "/?index" path, as
 http://localhost:8080/?index.
+
+Note that table of contents generating javascript is a modified version of
+code found at https://github.com/matthewkastor/html-table-of-contents which
+is licensed under GNU GENERAL PUBLIC LICENSE Version 3.

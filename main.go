@@ -7,6 +7,11 @@
 //
 // To access automatically generated index, request "/?index" path, as
 // http://localhost:8080/?index.
+//
+//
+// Note that table of contents generating javascript is a modified version of
+// code found at https://github.com/matthewkastor/html-table-of-contents which
+// is licensed under GNU GENERAL PUBLIC LICENSE Version 3.
 package main
 
 import (
@@ -243,7 +248,29 @@ const indexTpl = `<!doctype html><head><title>Index</title>
 `
 
 const pageTpl = `<!doctype html><head><title>{{.Title}}</title>
-<style>{{.Style}}</style></head><body><nav><a href="/?index">&#10087; index</a></nav><article>
+<style>{{.Style}}</style><script>
+document.addEventListener('DOMContentLoaded', function() {
+	htmlTableOfContents();
+} );
+function htmlTableOfContents( documentRef ) {
+	var documentRef = documentRef || document;
+	var toc = documentRef.getElementById("toc");
+	var headings = [].slice.call(documentRef.body.querySelectorAll('article h1, article h2, article h3, article h4, article h5, article h6'));
+	if (headings.length < 2) { return };
+	headings.forEach(function (heading, index) {
+		var ref = heading.getAttribute( "id" );
+		var link = documentRef.createElement( "a" );
+		link.setAttribute( "href", "#"+ ref );
+		link.textContent = heading.textContent;
+		var li = documentRef.createElement( "li" );
+		li.setAttribute( "class", heading.tagName.toLowerCase() );
+		li.appendChild( link );
+		toc.appendChild( li );
+	});
+}
+</script></head><body><nav><a href="/?index">&#10087; index</a></nav>
+<ul id="toc"></ul>
+<article>
 {{.Body}}
 </article></body>
 `
@@ -351,11 +378,29 @@ dd p {
 	margin-top: 0;
 }
 
+ul#toc:not(:empty):before { content:"Contents:"; font-weight:bold; color:gray }
+ul#toc:not(:empty):after {
+	content:"\2042";
+	text-align:center;
+	display:block;
+	color:gray;
+}
+ul#toc {list-style: none;padding-left:0}
+ul#toc li.h2 {padding-left:1em}
+ul#toc li.h3 {padding-left:2em}
+ul#toc li.h4 {padding-left:3em}
+ul#toc li.h5 {padding-left:4em}
+ul#toc li.h6 {padding-left:5em}
+
 nav {
 	font-size:90%;
 	text-align:right;
 	padding:.5em;
 	border-bottom: 1px solid gray;
+}
+
+@media print {
+	nav, ul#toc {display: none}
 }`
 
 //go:generate sh -c "go doc >README"
