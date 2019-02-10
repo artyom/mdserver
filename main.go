@@ -221,7 +221,12 @@ func rewriteGithubWikiLinks(w io.Writer, node ast.Node, entering bool) (ast.Walk
 	if u, err := url.Parse(string(link.Destination)); err == nil &&
 		u.Host == "github.com" && strings.HasSuffix(path.Dir(u.Path), "/wiki") {
 		dst := path.Base(u.Path) + ".md"
-		fmt.Fprintf(w, "<a href=\"%s\">", url.QueryEscape(dst))
+		switch u.Fragment {
+		case "":
+			fmt.Fprintf(w, "<a href=\"%s\">", url.QueryEscape(dst))
+		default:
+			fmt.Fprintf(w, "<a href=\"%s#%s\">", url.QueryEscape(dst), url.QueryEscape(u.Fragment))
+		}
 		return ast.GoToNext, true
 	}
 	return ast.GoToNext, false
