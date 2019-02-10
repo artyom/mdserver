@@ -277,7 +277,7 @@ function htmlTableOfContents( documentRef ) {
 
 const extensions = parser.CommonExtensions | parser.AutoHeadingIDs
 
-var rendererOpts = html.RendererOptions{Flags: html.CommonFlags | html.Safelink}
+var rendererOpts = html.RendererOptions{Flags: html.CommonFlags}
 var policy = bluemonday.UGCPolicy()
 
 func containsDotDot(v string) bool {
