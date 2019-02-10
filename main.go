@@ -32,6 +32,7 @@ import (
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/microcosm-cc/bluemonday"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func main() {
@@ -70,7 +71,7 @@ func run(args runArgs) error {
 		ReadTimeout:  time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	if runtime.GOOS == "darwin" && isTerminal() {
+	if runtime.GOOS == "darwin" && terminal.IsTerminal(1) {
 		go func() {
 			time.Sleep(100 * time.Millisecond)
 			exec.Command("open", "http://"+args.Addr+"/?index").Run()
@@ -262,14 +263,6 @@ func containsDotDot(v string) bool {
 		}
 	}
 	return false
-}
-
-func isTerminal() bool {
-	st, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-	return st.Mode()&os.ModeDevice != 0
 }
 
 const style = `body {
