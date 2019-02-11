@@ -16,6 +16,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io"
@@ -69,6 +71,8 @@ func run(args runArgs) error {
 		}
 		h.style = template.CSS(b)
 	}
+	sum := sha256.Sum256([]byte(h.style))
+	h.styleHash = "sha256-" + base64.RawStdEncoding.EncodeToString(sum[:])
 	srv := http.Server{
 		Addr:         args.Addr,
 		Handler:      h,
@@ -89,9 +93,11 @@ type mdHandler struct {
 	fileServer http.Handler // initialized as http.FileServer(http.Dir(dir))
 	githubWiki bool
 	style      template.CSS
+	styleHash  string // sha256-{HASH} value for CSP
 }
 
 func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	if r.URL.Path == "/" && r.URL.RawQuery == "index" {
 		indexTemplate.Execute(w, struct {
 			Style template.CSS
@@ -120,6 +126,10 @@ func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Security-Policy", "default-src 'self';"+
+		"img-src http: https: data:;media-src https:;"+
+		"script-src 'sha256-fuJOTtU+swhVjMGahGvof8RbeaIDlptfQDoHubzBL9I';"+
+		"style-src '"+h.styleHash+"';")
 	opts := rendererOpts
 	if h.githubWiki {
 		opts.RenderNodeHook = rewriteGithubWikiLinks
