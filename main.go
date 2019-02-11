@@ -244,14 +244,14 @@ var repl = strings.NewReplacer("-", " ")
 var indexTemplate = template.Must(template.New("index").Parse(indexTpl))
 var pageTemplate = template.Must(template.New("page").Parse(pageTpl))
 
-const indexTpl = `<!doctype html><head><title>Index</title>
+const indexTpl = `<!doctype html><head><meta charset="utf-8"><title>Index</title>
 <style>{{.Style}}</style></head><body>
 <h1>Index</h1><ul>
 {{range .Index}}<li><a href="{{.File}}">{{.Title}}</a></li>
 {{end}}</ul></body>
 `
 
-const pageTpl = `<!doctype html><head><title>{{.Title}}</title>
+const pageTpl = `<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</title>
 <style>{{.Style}}</style><script>
 document.addEventListener('DOMContentLoaded', function() {
 	htmlTableOfContents();
