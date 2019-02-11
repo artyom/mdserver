@@ -24,10 +24,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -37,7 +35,7 @@ import (
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/microcosm-cc/bluemonday"
-	"golang.org/x/crypto/ssh/terminal"
+	"github.com/pkg/browser"
 )
 
 func main() {
@@ -52,6 +50,7 @@ func main() {
 type runArgs struct {
 	Dir  string `flag:"dir,directory with markdown (.md) files"`
 	Addr string `flag:"addr,address to listen"`
+	Open bool   `flag:"open,open index page in default browser on start"`
 	Ghub bool   `flag:"github,rewrite github wiki links to local when rendering"`
 	CSS  string `flag:"css,path to custom CSS file"`
 }
@@ -76,10 +75,10 @@ func run(args runArgs) error {
 		ReadTimeout:  time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	if runtime.GOOS == "darwin" && terminal.IsTerminal(1) {
+	if args.Open {
 		go func() {
 			time.Sleep(100 * time.Millisecond)
-			exec.Command("open", "http://"+args.Addr+"/?index").Run()
+			browser.OpenURL("http://" + args.Addr + "/?index")
 		}()
 	}
 	return srv.ListenAndServe()
