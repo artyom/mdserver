@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
@@ -38,6 +39,8 @@ import (
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/pkg/browser"
+	"golang.org/x/text/language"
+	"golang.org/x/text/search"
 )
 
 func main() {
@@ -54,6 +57,7 @@ type runArgs struct {
 	Addr string `flag:"addr,address to listen"`
 	Open bool   `flag:"open,open index page in default browser on start"`
 	Ghub bool   `flag:"github,rewrite github wiki links to local when rendering"`
+	Grep bool   `flag:"search,enable substring search"`
 	CSS  string `flag:"css,path to custom CSS file"`
 }
 
@@ -62,6 +66,7 @@ func run(args runArgs) error {
 		dir:        args.Dir,
 		fileServer: http.FileServer(http.Dir(args.Dir)),
 		githubWiki: args.Ghub,
+		withSearch: args.Grep,
 		style:      template.CSS(style),
 	}
 	if args.CSS != "" {
@@ -92,17 +97,39 @@ type mdHandler struct {
 	dir        string
 	fileServer http.Handler // initialized as http.FileServer(http.Dir(dir))
 	githubWiki bool
+	withSearch bool
 	style      template.CSS
 	styleHash  string // sha256-{HASH} value for CSP
 }
 
 func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	type indexPage struct {
+		Title      string
+		Style      template.CSS
+		Index      []indexRecord
+		WithSearch bool
+	}
 	if r.URL.Path == "/" && r.URL.RawQuery == "index" {
-		indexTemplate.Execute(w, struct {
-			Style template.CSS
-			Index []indexRecord
-		}{Style: h.style, Index: dirIndex(h.dir)})
+		indexTemplate.Execute(w, indexPage{
+			Title:      "Index",
+			Style:      h.style,
+			Index:      dirIndex(h.dir, nil),
+			WithSearch: h.withSearch})
+		return
+	}
+	if h.withSearch && r.URL.Path == "/" && strings.HasPrefix(r.URL.RawQuery, "q=") {
+		q := r.URL.Query().Get("q")
+		if len(q) < 3 {
+			http.Error(w, "Search term is too short", http.StatusBadRequest)
+			return
+		}
+		pat := search.New(language.English, search.Loose).CompileString(q)
+		indexTemplate.Execute(w, indexPage{
+			Title:      fmt.Sprintf("Search results for %q", q),
+			Style:      h.style,
+			Index:      dirIndex(h.dir, pat),
+			WithSearch: h.withSearch})
 		return
 	}
 	if !strings.HasSuffix(r.URL.Path, ".md") {
@@ -147,13 +174,16 @@ func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func dirIndex(dir string) []indexRecord {
+func dirIndex(dir string, pat *search.Pattern) []indexRecord {
 	matches, err := filepath.Glob(filepath.Join(dir, "*.md"))
 	if err != nil {
 		panic(err)
 	}
 	index := make([]indexRecord, 0, len(matches))
 	for _, s := range matches {
+		if pat != nil && !matchPattern(pat, s) {
+			continue
+		}
 		file := filepath.Base(s)
 		title := documentTitle(s)
 		if title == "" {
@@ -217,6 +247,23 @@ func childLiterals(node ast.Node) []byte {
 	return bytes.Join(out, nil)
 }
 
+// matchPattern reports whether any line in file matches given pattern. On any
+// errors function return false.
+func matchPattern(pat *search.Pattern, file string) bool {
+	f, err := os.Open(file)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(io.LimitReader(f, 1<<20))
+	for sc.Scan() {
+		if _, end := pat.Index(sc.Bytes()); end > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // rewriteGithubWikiLinks is a html.RenderNodeFunc which renders links
 // with github wiki destinations as local ones.
 //
@@ -254,9 +301,11 @@ var repl = strings.NewReplacer("-", " ")
 var indexTemplate = template.Must(template.New("index").Parse(indexTpl))
 var pageTemplate = template.Must(template.New("page").Parse(pageTpl))
 
-const indexTpl = `<!doctype html><head><meta charset="utf-8"><title>Index</title>
-<style>{{.Style}}</style></head><body>
-<h1>Index</h1><ul>
+const indexTpl = `<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</title>
+<style>{{.Style}}</style></head><body>{{if .WithSearch}}<form method="get">
+<input type="search" name="q" minlength="3" placeholder="Substring search" autofocus required>
+<input type="submit"></form>{{end}}
+<h1>{{.Title}}</h1><ul>
 {{range .Index}}<li><a href="{{.File}}">{{.Title}}</a></li>
 {{end}}</ul></body>
 `
