@@ -77,7 +77,7 @@ func run(args runArgs) error {
 		h.style = template.CSS(b)
 	}
 	sum := sha256.Sum256([]byte(h.style))
-	h.styleHash = "sha256-" + base64.RawStdEncoding.EncodeToString(sum[:])
+	h.styleHash = "sha256-" + base64.StdEncoding.EncodeToString(sum[:])
 	srv := http.Server{
 		Addr:         args.Addr,
 		Handler:      h,
@@ -155,7 +155,7 @@ func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Security-Policy", "default-src 'self';"+
 		"img-src http: https: data:;media-src https:;"+
-		"script-src 'sha256-fuJOTtU+swhVjMGahGvof8RbeaIDlptfQDoHubzBL9I';"+
+		"script-src 'sha256-fuJOTtU+swhVjMGahGvof8RbeaIDlptfQDoHubzBL9I=';"+
 		"style-src '"+h.styleHash+"';")
 	opts := rendererOpts
 	if h.githubWiki {
