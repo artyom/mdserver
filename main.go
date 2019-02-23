@@ -356,8 +356,8 @@ func containsDotDot(v string) bool {
 }
 
 const style = `body {
-	font-family: "PT Serif", "Droid Serif", serif;
-	font-size: 100%;
+	font-family: Charter, Constantia, serif;
+	font-size: 1rem;
 	line-height: 170%;
 	max-width: 45em;
 	margin: auto;
@@ -378,23 +378,16 @@ const style = `body {
 a {color: #a08941; text-decoration: none;}
 a:hover {color: #c6b754; text-decoration: underline;}
 
-footer {
-	margin-top: 3em;
-	padding-top: 1em;
-	padding-bottom: 1em;
-	border-top: 1px solid gray;
-}
-
 h1 a, h2 a, h3 a, h4 a, h5 a {
 	text-decoration: none;
 	color: gray;
+	break-after: avoid;
 }
 h1 a:hover, h2 a:hover, h3 a:hover, h4 a:hover, h5 a:hover {
 	text-decoration: none;
 	color: gray;
 }
 h1, h2, h3, h4, h5 {
-	font-family: Georgia, serif;
 	font-weight: bold;
 	color: gray;
 }
@@ -423,9 +416,9 @@ pre {
 	overflow: auto;
 }
 code, pre {
-	font-size: 90%;
-	font-family: "Consolas", "PT Mono", "Lucida Console", monospace;
+	font-family: Consolas, "PT Mono", monospace;
 }
+pre { font-size: 90%; }
 
 hr { border:none; text-align:center; color:gray; }
 hr:after {
@@ -440,6 +433,22 @@ dt code {
 dd p {
 	margin-top: 0;
 }
+
+blockquote {
+	background-color: rgba(200,200,200,0.2);
+	color: #1111111;
+	padding: 0 0.5em;
+}
+
+img {display:block;margin:auto;max-width:100%}
+
+table, td, th {
+	border:thin solid lightgrey;
+	border-collapse:collapse;
+	vertical-aligh:middle;
+}
+td, th {padding:0.2em 0.5em}
+tr:nth-child(even) {background-color: rgba(200,200,200,0.2)}
 
 ul#toc:not(:empty):before { content:"Contents:"; font-weight:bold; color:gray }
 ul#toc:not(:empty):after {
@@ -464,6 +473,7 @@ nav {
 
 @media print {
 	nav, ul#toc {display: none}
+	pre {overflow-wrap:break-word; white-space:pre-wrap}
 }`
 
 //go:generate sh -c "go doc >README"
