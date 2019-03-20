@@ -84,10 +84,9 @@ func run(args runArgs) error {
 	sum := sha256.Sum256([]byte(h.style))
 	h.styleHash = "sha256-" + base64.StdEncoding.EncodeToString(sum[:])
 	srv := http.Server{
-		Addr:         args.Addr,
-		Handler:      h,
-		ReadTimeout:  time.Second,
-		WriteTimeout: 10 * time.Second,
+		Addr:        args.Addr,
+		Handler:     h,
+		ReadTimeout: time.Second,
 	}
 	if args.Open {
 		go func() {
