@@ -308,6 +308,7 @@ var indexTemplate = template.Must(template.New("index").Parse(indexTpl))
 var pageTemplate = template.Must(template.New("page").Parse(pageTpl))
 
 const indexTpl = `<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>{{.Style}}</style></head><body>{{if .WithSearch}}<form method="get">
 <input type="search" name="q" minlength="3" placeholder="Substring search" autofocus required>
 <input type="submit"></form>{{end}}
@@ -317,6 +318,7 @@ const indexTpl = `<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</
 `
 
 const pageTpl = `<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>{{.Style}}</style><script>
 document.addEventListener('DOMContentLoaded', function() {
 	htmlTableOfContents();
@@ -374,9 +376,9 @@ const style = `body {
 	text-rendering: optimizeLegibility;
 }
 
-@media only screen and (max-device-width:480px) {
+@media only screen and (max-width: 480px) {
 	body {
-		font-size:110%;
+		font-size: 125%;
 		text-rendering: auto;
 	}
 }
