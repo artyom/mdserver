@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/artyom/autoflags"
+	"github.com/artyom/httpgzip"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/html"
@@ -85,7 +86,7 @@ func run(args runArgs) error {
 	h.styleHash = "sha256-" + base64.StdEncoding.EncodeToString(sum[:])
 	srv := http.Server{
 		Addr:        args.Addr,
-		Handler:     h,
+		Handler:     httpgzip.New(h),
 		ReadTimeout: time.Second,
 	}
 	if args.Open {
