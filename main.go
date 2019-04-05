@@ -343,7 +343,7 @@ function htmlTableOfContents( documentRef ) {
 </article></body>
 `
 
-const extensions = parser.CommonExtensions | parser.AutoHeadingIDs
+const extensions = parser.CommonExtensions | parser.AutoHeadingIDs ^ parser.MathJax
 
 var rendererOpts = html.RendererOptions{Flags: html.CommonFlags}
 var policy = bluemonday.UGCPolicy()
