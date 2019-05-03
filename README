@@ -1,6 +1,6 @@
-Command mdserver is an http server serving single directory with markdown
-(.md) files. If can render automatically built index of those files and
-render them as html pages.
+Command mdserver is an http server serving directory (recursively) with
+markdown (.md) files. If can render automatically built index of those files
+and render them as html pages.
 
 Its main use-case is reading through directory with documentation written in
 markdown format, i.e. local copy of Github wiki.

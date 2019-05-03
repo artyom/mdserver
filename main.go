@@ -1,6 +1,6 @@
-// Command mdserver is an http server serving single directory with markdown
-// (.md) files. If can render automatically built index of those files and
-// render them as html pages.
+// Command mdserver is an http server serving directory (recursively) with
+// markdown (.md) files. If can render automatically built index of those files
+// and render them as html pages.
 //
 // Its main use-case is reading through directory with documentation written in
 // markdown format, i.e. local copy of Github wiki.
@@ -32,6 +32,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -181,27 +182,58 @@ func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func dirIndex(dir string, pat *search.Pattern) []indexRecord {
-	matches, err := filepath.Glob(filepath.Join(dir, "*.md"))
-	if err != nil {
-		panic(err)
+	var matches []string
+	fn := func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() && p != "." && strings.HasPrefix(filepath.Base(p), ".") {
+			return filepath.SkipDir
+		}
+		if info.IsDir() || !strings.HasSuffix(p, ".md") {
+			return nil
+		}
+		matches = append(matches, p)
+		return nil
 	}
-	index := make([]indexRecord, 0, len(matches))
+	if err := filepath.Walk(dir, fn); err != nil {
+		log.Printf("walk %q: %v", dir, err)
+	}
+	var index []indexRecord
+	if pat == nil {
+		index = make([]indexRecord, 0, len(matches))
+	}
 	for _, s := range matches {
 		if pat != nil && !matchPattern(pat, s) {
 			continue
 		}
-		file := filepath.Base(s)
 		title := documentTitle(s)
 		if title == "" {
-			title = nameToTitle(file)
+			title = nameToTitle(filepath.Base(s))
 		}
-		index = append(index, indexRecord{Title: title, File: file})
+		file, err := filepath.Rel(dir, s)
+		if err != nil {
+			continue
+		}
+		index = append(index, indexRecord{
+			Title:  title,
+			File:   filepath.ToSlash(file),
+			Subdir: filepath.ToSlash(filepath.Dir(file)),
+		})
 	}
+	sort.Slice(index, func(i, j int) bool {
+		si, sj := index[i].Subdir, index[j].Subdir
+		if si == sj {
+			return strings.ToLower(path.Base(index[i].File)) < strings.ToLower(path.Base(index[j].File))
+		}
+		return si < sj
+	})
 	return index
 }
 
 type indexRecord struct {
 	Title, File string
+	Subdir      string // groups index records when rendering template
 }
 
 // documentTitle extracts h1 header from markdown document
@@ -312,8 +344,8 @@ const indexTpl = `<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</
 <style>{{.Style}}</style></head><body>{{if .WithSearch}}<form method="get">
 <input type="search" name="q" minlength="3" placeholder="Substring search" autofocus required>
 <input type="submit"></form>{{end}}
-<h1>{{.Title}}</h1><ul>
-{{range .Index}}<li><a href="{{.File}}">{{.Title}}</a></li>
+<h1>{{.Title}}</h1><ul>{{$prev := "."}}
+{{range .Index}}{{if ne .Subdir $prev}}{{$prev = .Subdir}}</ul><h2>{{.Subdir}}</h2><ul>{{end}}<li><a href="{{.File}}">{{.Title}}</a></li>
 {{end}}</ul></body>
 `
 
