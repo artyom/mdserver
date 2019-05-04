@@ -139,7 +139,7 @@ func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			WithSearch: h.withSearch})
 		return
 	}
-	if !strings.HasSuffix(r.URL.Path, ".md") {
+	if !strings.HasSuffix(r.URL.Path, mdSuffix) {
 		h.fileServer.ServeHTTP(w, r)
 		return
 	}
@@ -190,7 +190,7 @@ func dirIndex(dir string, pat *search.Pattern) []indexRecord {
 		if info.IsDir() && p != "." && strings.HasPrefix(filepath.Base(p), ".") {
 			return filepath.SkipDir
 		}
-		if info.IsDir() || !strings.HasSuffix(p, ".md") {
+		if info.IsDir() || !strings.HasSuffix(p, mdSuffix) {
 			return nil
 		}
 		matches = append(matches, p)
@@ -220,7 +220,7 @@ func dirIndex(dir string, pat *search.Pattern) []indexRecord {
 			File:   filepath.ToSlash(file),
 			Subdir: filepath.ToSlash(filepath.Dir(file)),
 			// precalculate sort key to speed up comparisons on sort
-			sortKey: strings.ToLower(strings.TrimSuffix(filepath.Base(file), ".md")),
+			sortKey: strings.ToLower(strings.TrimSuffix(filepath.Base(file), mdSuffix)),
 		})
 	}
 	sort.Slice(index, func(i, j int) bool {
@@ -317,7 +317,7 @@ func rewriteGithubWikiLinks(w io.Writer, node ast.Node, entering bool) (ast.Walk
 	}
 	if u, err := url.Parse(string(link.Destination)); err == nil &&
 		u.Host == "github.com" && strings.HasSuffix(path.Dir(u.Path), "/wiki") {
-		dst := path.Base(u.Path) + ".md"
+		dst := path.Base(u.Path) + mdSuffix
 		switch u.Fragment {
 		case "":
 			fmt.Fprintf(w, "<a href=\"%s\">", url.QueryEscape(dst))
@@ -330,14 +330,15 @@ func rewriteGithubWikiLinks(w io.Writer, node ast.Node, entering bool) (ast.Walk
 }
 
 func nameToTitle(name string) string {
-	const suffix = ".md"
 	if strings.ContainsAny(name, " ") {
-		return strings.TrimSuffix(name, suffix)
+		return strings.TrimSuffix(name, mdSuffix)
 	}
-	return repl.Replace(strings.TrimSuffix(name, suffix))
+	return repl.Replace(strings.TrimSuffix(name, mdSuffix))
 }
 
 var repl = strings.NewReplacer("-", " ")
+
+const mdSuffix = ".md"
 
 var indexTemplate = template.Must(template.New("index").Parse(indexTpl))
 var pageTemplate = template.Must(template.New("page").Parse(pageTpl))
