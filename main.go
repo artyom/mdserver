@@ -11,6 +11,10 @@
 // To create home page available at / either create index.html file or start
 // server with -rootindex flag to render automatically generated index.
 //
+// If started with -github flag, it will render any absolute links to github
+// wikis like "https://github.com/user/project/wiki/Page" to relative ones like
+// "Page.md".
+//
 //
 // Note that table of contents generating javascript is a modified version of
 // code found at https://github.com/matthewkastor/html-table-of-contents which
