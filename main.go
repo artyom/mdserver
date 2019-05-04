@@ -219,12 +219,14 @@ func dirIndex(dir string, pat *search.Pattern) []indexRecord {
 			Title:  title,
 			File:   filepath.ToSlash(file),
 			Subdir: filepath.ToSlash(filepath.Dir(file)),
+			// precalculate sort key to speed up comparisons on sort
+			sortKey: strings.ToLower(strings.TrimSuffix(filepath.Base(file), ".md")),
 		})
 	}
 	sort.Slice(index, func(i, j int) bool {
 		si, sj := index[i].Subdir, index[j].Subdir
 		if si == sj {
-			return strings.ToLower(path.Base(index[i].File)) < strings.ToLower(path.Base(index[j].File))
+			return index[i].sortKey < index[j].sortKey
 		}
 		return si < sj
 	})
@@ -234,6 +236,7 @@ func dirIndex(dir string, pat *search.Pattern) []indexRecord {
 type indexRecord struct {
 	Title, File string
 	Subdir      string // groups index records when rendering template
+	sortKey     string // if File is "dir/FileName.md", then sortKey is "filename"
 }
 
 // documentTitle extracts h1 header from markdown document
