@@ -389,7 +389,7 @@ function htmlTableOfContents( documentRef ) {
 const extensions = parser.CommonExtensions | parser.AutoHeadingIDs ^ parser.MathJax
 
 var rendererOpts = html.RendererOptions{Flags: html.CommonFlags}
-var policy = bluemonday.UGCPolicy()
+var policy = bluemonday.UGCPolicy().AllowAttrs("class").OnElements("code")
 
 func containsDotDot(v string) bool {
 	if !strings.Contains(v, "..") {
