@@ -52,7 +52,20 @@ func run(name string) error {
 	if err != nil {
 		return err
 	}
-	doc := parser.New().Parse(b)
+	const extensions = parser.CommonExtensions | parser.AutoHeadingIDs ^ parser.MathJax
+	doc := parser.NewWithExtensions(extensions).Parse(b)
+
+	idRefs := make(map[string]struct{})
+	_ = ast.Walk(doc, ast.NodeVisitorFunc(func(node ast.Node, entering bool) ast.WalkStatus {
+		if !entering {
+			return ast.GoToNext
+		}
+		if n, ok := node.(*ast.Heading); ok && n.HeadingID != "" {
+			idRefs[n.HeadingID] = struct{}{}
+		}
+		return ast.GoToNext
+	}))
+
 	var hadErrors bool
 	walkFn := func(node ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
@@ -78,6 +91,12 @@ func run(name string) error {
 			return ast.GoToNext
 		}
 		if u.Scheme != "" || u.Host != "" || u.Path == "" {
+			if u.Fragment != "" {
+				if _, ok := idRefs[u.Fragment]; !ok {
+					hadErrors = true
+					log.Printf("%s: %q: broken link", name, dst)
+				}
+			}
 			return ast.GoToNext
 		}
 		if !fileExists(filepath.Join(filepath.Dir(name), filepath.FromSlash(u.Path))) {
