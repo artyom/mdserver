@@ -90,13 +90,13 @@ func run(name string) error {
 			hadErrors = true
 			return ast.GoToNext
 		}
-		if u.Scheme != "" || u.Host != "" || u.Path == "" {
-			if u.Fragment != "" {
-				if _, ok := idRefs[u.Fragment]; !ok {
-					hadErrors = true
-					log.Printf("%s: %q: broken link", name, dst)
-				}
+		if u.Scheme == "" && u.Host == "" && u.Path == "" && u.Fragment != "" {
+			if _, ok := idRefs[u.Fragment]; !ok {
+				hadErrors = true
+				log.Printf("%s: %q: broken link", name, dst)
 			}
+		}
+		if u.Scheme != "" || u.Host != "" || u.Path == "" {
 			return ast.GoToNext
 		}
 		if !fileExists(filepath.Join(filepath.Dir(name), filepath.FromSlash(u.Path))) {
