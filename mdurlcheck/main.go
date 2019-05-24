@@ -40,7 +40,7 @@ func main() {
 		log.Fatalf("usage: %s file.md", filepath.Base(os.Args[0]))
 	}
 	if err := run(os.Args[1]); err != nil {
-		if err == dirtyRun {
+		if err == errDirtyRun {
 			os.Exit(1)
 		}
 		log.Fatal(err)
@@ -107,12 +107,12 @@ func run(name string) error {
 	}
 	_ = ast.Walk(doc, ast.NodeVisitorFunc(walkFn))
 	if hadErrors {
-		return dirtyRun
+		return errDirtyRun
 	}
 	return nil
 }
 
-var dirtyRun = errors.New("some links are not ok")
+var errDirtyRun = errors.New("some links are not ok")
 
 func fileExists(name string) bool {
 	fi, err := os.Stat(name)
