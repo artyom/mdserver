@@ -164,7 +164,7 @@ func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := filepath.Join(h.dir, filepath.FromSlash(p))
-	b, err := ioutil.ReadFile(name)
+	rc, mtime, err := h.readerForFile(name)
 	if err != nil {
 		if os.IsNotExist(err) {
 			http.NotFound(w, r)
@@ -174,32 +174,8 @@ func (h *mdHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	opts := rendererOpts
-	if h.githubWiki {
-		opts.RenderNodeHook = rewriteGithubWikiLinks
-	}
-	body := markdown.ToHTML(b, parser.NewWithExtensions(extensions), html.NewRenderer(opts))
-	body = policy.SanitizeBytes(body)
-	withHL := h.hljs && bytes.Contains(body, []byte(`<pre><code class=`))
-	w.Header().Set("Content-Security-Policy", h.csp(withHL))
-	page := struct {
-		Title     string
-		StyleHref string
-		Style     template.CSS
-		Body      template.HTML
-		WithHL    bool
-	}{
-		Title:  nameToTitle(filepath.Base(name)),
-		Body:   template.HTML(body),
-		WithHL: withHL,
-	}
-	switch {
-	case h.linkStyle:
-		page.StyleHref = h.style
-	default:
-		page.Style = template.CSS(h.style)
-	}
-	pageTemplate.Execute(w, page)
+	w.Header().Set("Content-Security-Policy", h.csp(h.hljs))
+	http.ServeContent(w, r, "page.html", mtime, rc)
 }
 
 func (h *mdHandler) renderIndex(w io.Writer, title string, index []indexRecord) error {
@@ -247,6 +223,86 @@ func (h *mdHandler) csp(withHL bool) string {
 		}
 	}
 	return strings.Join(csp, ";")
+}
+
+// readerForFile returns lazy io.ReadSeeker and mtime to be used as arguments of
+// http.ServeContent. It does not use ReadSeeker at all if http client already
+// has fresh content as signaled by "If-Modified-Since" request header;
+// lazyReadSeeker takes advantage of this by defering any file reading and
+// rendering until one of its method is called.
+func (h *mdHandler) readerForFile(name string) (*lazyReadSeeker, time.Time, error) {
+	fi, err := os.Stat(name)
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	return &lazyReadSeeker{name: name, h: h}, fi.ModTime(), nil
+}
+
+type lazyReadSeeker struct {
+	name string
+	h    *mdHandler
+	r    *bytes.Reader // initially nil, initialized with init()
+}
+
+func (l *lazyReadSeeker) init() error {
+	if l.r != nil {
+		return nil
+	}
+	if testRun {
+		log.Print("lazyReadSeeker init()")
+	}
+	b, err := ioutil.ReadFile(l.name)
+	if err != nil {
+		return err
+	}
+	opts := rendererOpts
+	if l.h.githubWiki {
+		opts.RenderNodeHook = rewriteGithubWikiLinks
+	}
+	body := markdown.ToHTML(b, parser.NewWithExtensions(extensions), html.NewRenderer(opts))
+	body = policy.SanitizeBytes(body)
+	withHL := l.h.hljs && bytes.Contains(body, []byte(`<pre><code class=`))
+	page := struct {
+		Title     string
+		StyleHref string
+		Style     template.CSS
+		Body      template.HTML
+		WithHL    bool
+	}{
+		Title:  nameToTitle(filepath.Base(l.name)),
+		Body:   template.HTML(body),
+		WithHL: withHL,
+	}
+	switch {
+	case l.h.linkStyle:
+		page.StyleHref = l.h.style
+	default:
+		page.Style = template.CSS(l.h.style)
+	}
+	buf := bytes.NewBuffer(b[:0]) // reuse b to reduce allocations
+	if err := pageTemplate.Execute(buf, page); err != nil {
+		return err
+	}
+	l.r = bytes.NewReader(buf.Bytes())
+	return nil
+}
+
+func (l *lazyReadSeeker) Read(p []byte) (n int, err error) {
+	if l.r == nil {
+		if err := l.init(); err != nil {
+			return 0, err
+		}
+	}
+	return l.r.Read(p)
+}
+
+func (l *lazyReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	if l.r == nil {
+		if err := l.init(); err != nil {
+			return 0, err
+		}
+	}
+	return l.r.Seek(offset, whence)
 }
 
 func dirIndex(dir string, pat *search.Pattern) []indexRecord {
@@ -606,5 +662,7 @@ nav {
 	nav, ul#toc {display: none}
 	pre {overflow-wrap:break-word; white-space:pre-wrap}
 }`
+
+var testRun bool // used in tests
 
 //go:generate sh -c "go doc >README"
