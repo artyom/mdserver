@@ -38,8 +38,9 @@ func main() {
 		log.Fatalf("usage: %s file.md|directory ...", filepath.Base(os.Args[0]))
 	}
 	var exitCode int
+	intrefs := make(refMap)
 	for _, name := range os.Args[1:] {
-		if err := run(name); err != nil {
+		if err := run(name, intrefs); err != nil {
 			if err == errDirtyRun {
 				exitCode = 1
 				continue
@@ -50,13 +51,13 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func run(name string) error {
+func run(name string, intrefs refMap) error {
 	fi, err := os.Stat(name)
 	if err != nil {
 		return err
 	}
 	if !fi.IsDir() {
-		return processFile(name)
+		return processFile(name, intrefs)
 	}
 	var outErr error
 	err = filepath.Walk(name, func(name string, fi os.FileInfo, err error) error {
@@ -69,7 +70,7 @@ func run(name string) error {
 		if fi.IsDir() || !strings.HasSuffix(name, ".md") {
 			return nil
 		}
-		if err = processFile(name); err == errDirtyRun {
+		if err = processFile(name, intrefs); err == errDirtyRun {
 			outErr = err
 			return nil
 		}
@@ -81,24 +82,14 @@ func run(name string) error {
 	return outErr
 }
 
-func processFile(name string) error {
+func processFile(name string, intrefs refMap) error {
 	b, err := ioutil.ReadFile(name)
 	if err != nil {
 		return err
 	}
-	const extensions = parser.CommonExtensions | parser.AutoHeadingIDs ^ parser.MathJax
 	doc := parser.NewWithExtensions(extensions).Parse(b)
 
-	idRefs := make(map[string]struct{})
-	_ = ast.Walk(doc, ast.NodeVisitorFunc(func(node ast.Node, entering bool) ast.WalkStatus {
-		if !entering {
-			return ast.GoToNext
-		}
-		if n, ok := node.(*ast.Heading); ok && n.HeadingID != "" {
-			idRefs[n.HeadingID] = struct{}{}
-		}
-		return ast.GoToNext
-	}))
+	idRefs := extractRefs(doc)
 
 	var hadErrors bool
 	walkFn := func(node ast.Node, entering bool) ast.WalkStatus {
@@ -133,9 +124,23 @@ func processFile(name string) error {
 		if u.Scheme != "" || u.Host != "" || u.Path == "" {
 			return ast.GoToNext
 		}
-		if !fileExists(filepath.Join(filepath.Dir(name), filepath.FromSlash(u.Path))) {
+		filename := filepath.Join(filepath.Dir(name), filepath.FromSlash(u.Path))
+		if !fileExists(filename) {
 			hadErrors = true
 			log.Printf("%s: %q: broken link", name, dst)
+		}
+		if u.Fragment != "" {
+			okf, okr := intrefs.hasRef(filename, u.Fragment)
+			if !okf {
+				if r, err := fileRefs(filename); err == nil {
+					intrefs.setRefs(filename, r)
+					_, okr = r[u.Fragment]
+				}
+			}
+			if !okr {
+				hadErrors = true
+				log.Printf("%s: %q: broken link (fragment points to non-existent id)", name, dst)
+			}
 		}
 		return ast.GoToNext
 	}
@@ -144,6 +149,31 @@ func processFile(name string) error {
 		return errDirtyRun
 	}
 	return nil
+}
+
+func extractRefs(doc ast.Node) map[string]struct{} {
+	idRefs := make(map[string]struct{})
+	_ = ast.Walk(doc, ast.NodeVisitorFunc(func(node ast.Node, entering bool) ast.WalkStatus {
+		if !entering {
+			return ast.GoToNext
+		}
+		if n, ok := node.(*ast.Heading); ok && n.HeadingID != "" {
+			idRefs[n.HeadingID] = struct{}{}
+		}
+		return ast.GoToNext
+	}))
+	if len(idRefs) == 0 {
+		return nil
+	}
+	return idRefs
+}
+
+func fileRefs(name string) (map[string]struct{}, error) {
+	b, err := ioutil.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	return extractRefs(parser.NewWithExtensions(extensions).Parse(b)), nil
 }
 
 var errDirtyRun = errors.New("some links are not ok")
@@ -155,5 +185,25 @@ func fileExists(name string) bool {
 	}
 	return fi.Mode().IsRegular()
 }
+
+// refMap is used to cache and resolve links like file.md#header. Top-level keys
+// are full filenames, second-level keys are internal ids discovered from
+// headers
+type refMap map[string]map[string]struct{}
+
+// hasRef returns result of lookup of file and ref inside cache. First bool is
+// whether file is known, second bool is whether ref for this file is known.
+func (m refMap) hasRef(file, ref string) (bool, bool) {
+	r, ok := m[file]
+	if !ok {
+		return false, false
+	}
+	_, ok = r[ref]
+	return true, ok
+}
+
+func (m refMap) setRefs(file string, refs map[string]struct{}) { m[file] = refs }
+
+const extensions = parser.CommonExtensions | parser.AutoHeadingIDs ^ parser.MathJax
 
 func init() { log.SetFlags(0) }
