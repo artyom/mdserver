@@ -1,9 +1,11 @@
 // Program mdurlcheck checks whether given markdown files have any broken
 // relative links to other files.
 //
-// It takes one or more .md files as its arguments, then finds relative links
-// (including image links) to other files in them and checks whether such files
-// exist on the filesystem.
+// It takes one or more .md files or directories as its arguments, then finds
+// relative links (including image links) to other files in them and checks
+// whether such files exist on the filesystem. If argument is directory, it
+// recursively traverses this directory in search of .md files, while skipping
+// directories with names starting with dot.
 //
 // Provided with the following file:
 //
@@ -16,11 +18,6 @@
 // img/screenshot.jpg exist on disk, relative to the location of provided file.
 //
 // Program reports any errors on stderr and exits with non-zero exit code.
-//
-// If you need to check large directory with markdown files for broken
-// cross-references, use xargs:
-//
-// 	find . -name \*.md -print0 | xargs -0 -P4 mdurlcheck
 package main
 
 import (
@@ -30,6 +27,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/parser"
@@ -37,7 +35,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatalf("usage: %s file.md ...", filepath.Base(os.Args[0]))
+		log.Fatalf("usage: %s file.md|directory ...", filepath.Base(os.Args[0]))
 	}
 	var exitCode int
 	for _, name := range os.Args[1:] {
@@ -53,6 +51,37 @@ func main() {
 }
 
 func run(name string) error {
+	fi, err := os.Stat(name)
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return processFile(name)
+	}
+	var outErr error
+	err = filepath.Walk(name, func(name string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if base := filepath.Base(name); fi.IsDir() && base != "." && strings.HasPrefix(base, ".") {
+			return filepath.SkipDir
+		}
+		if fi.IsDir() || !strings.HasSuffix(name, ".md") {
+			return nil
+		}
+		if err = processFile(name); err == errDirtyRun {
+			outErr = err
+			return nil
+		}
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	return outErr
+}
+
+func processFile(name string) error {
 	b, err := ioutil.ReadFile(name)
 	if err != nil {
 		return err

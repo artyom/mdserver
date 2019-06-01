@@ -1,9 +1,11 @@
 Program mdurlcheck checks whether given markdown files have any broken
 relative links to other files.
 
-It takes one or more .md files as its arguments, then finds relative links
-(including image links) to other files in them and checks whether such files
-exist on the filesystem.
+It takes one or more .md files or directories as its arguments, then finds
+relative links (including image links) to other files in them and checks
+whether such files exist on the filesystem. If argument is directory, it
+recursively traverses this directory in search of .md files, while skipping
+directories with names starting with dot.
 
 Provided with the following file:
 
@@ -16,8 +18,3 @@ The program will check whether files doc1.md, doc2.md, dir/doc.md, and
 img/screenshot.jpg exist on disk, relative to the location of provided file.
 
 Program reports any errors on stderr and exits with non-zero exit code.
-
-If you need to check large directory with markdown files for broken
-cross-references, use xargs:
-
-    find . -name \*.md -print0 | xargs -0 -P4 mdurlcheck
