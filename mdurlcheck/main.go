@@ -1,9 +1,9 @@
-// Program mdurlcheck checks whether given markdown file has any broken relative
-// links to other files.
+// Program mdurlcheck checks whether given markdown files have any broken
+// relative links to other files.
 //
-// It takes single .md file as an argument, then finds relative links (including
-// image links) to other files in it and checks whether such files exist on the
-// filesystem.
+// It takes one or more .md files as its arguments, then finds relative links
+// (including image links) to other files in them and checks whether such files
+// exist on the filesystem.
 //
 // Provided with the following file:
 //
@@ -20,7 +20,7 @@
 // If you need to check large directory with markdown files for broken
 // cross-references, use xargs:
 //
-// 	find . -name \*.md -print0 | xargs -0 -P4 -n1 mdurlcheck
+// 	find . -name \*.md -print0 | xargs -0 -P4 mdurlcheck
 package main
 
 import (
@@ -36,15 +36,20 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Fatalf("usage: %s file.md", filepath.Base(os.Args[0]))
+	if len(os.Args) < 2 {
+		log.Fatalf("usage: %s file.md ...", filepath.Base(os.Args[0]))
 	}
-	if err := run(os.Args[1]); err != nil {
-		if err == errDirtyRun {
-			os.Exit(1)
+	var exitCode int
+	for _, name := range os.Args[1:] {
+		if err := run(name); err != nil {
+			if err == errDirtyRun {
+				exitCode = 1
+				continue
+			}
+			log.Fatal(err)
 		}
-		log.Fatal(err)
 	}
+	os.Exit(exitCode)
 }
 
 func run(name string) error {
