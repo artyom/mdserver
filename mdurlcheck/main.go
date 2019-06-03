@@ -2,10 +2,10 @@
 // relative links to other files.
 //
 // It takes one or more .md files or directories as its arguments, then finds
-// relative links (including image links) to other files in them and checks
-// whether such files exist on the filesystem. If argument is directory, it
-// recursively traverses this directory in search of .md files, while skipping
-// directories with names starting with dot.
+// relative links (including image links) to other files/directories in them and
+// checks whether such files/directories exist on the filesystem. If argument is
+// directory, it recursively traverses this directory in search of .md files,
+// while skipping directories with names starting with dot.
 //
 // Provided with the following file:
 //
@@ -183,7 +183,7 @@ func fileExists(name string) bool {
 	if err != nil {
 		return false
 	}
-	return fi.Mode().IsRegular()
+	return fi.Mode().IsRegular() || fi.IsDir()
 }
 
 // refMap is used to cache and resolve links like file.md#header. Top-level keys
