@@ -96,11 +96,13 @@ func processFile(name string, intrefs refMap) error {
 		if !entering {
 			return ast.GoToNext
 		}
+		var exists func(string) bool = fileOrDirExists
 		var dst string
 		switch n := node.(type) {
 		case *ast.Link:
 			dst = string(n.Destination)
 		case *ast.Image:
+			exists = fileExists
 			dst = string(n.Destination)
 		default:
 			return ast.GoToNext
@@ -125,7 +127,7 @@ func processFile(name string, intrefs refMap) error {
 			return ast.GoToNext
 		}
 		filename := filepath.Join(filepath.Dir(name), filepath.FromSlash(u.Path))
-		if !fileExists(filename) {
+		if !exists(filename) {
 			hadErrors = true
 			log.Printf("%s: %q: broken link", name, dst)
 		}
@@ -179,6 +181,14 @@ func fileRefs(name string) (map[string]struct{}, error) {
 var errDirtyRun = errors.New("some links are not ok")
 
 func fileExists(name string) bool {
+	fi, err := os.Stat(name)
+	if err != nil {
+		return false
+	}
+	return fi.Mode().IsRegular()
+}
+
+func fileOrDirExists(name string) bool {
 	fi, err := os.Stat(name)
 	if err != nil {
 		return false
