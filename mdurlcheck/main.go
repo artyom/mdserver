@@ -22,6 +22,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -160,7 +161,17 @@ func extractRefs(doc ast.Node) map[string]struct{} {
 			return ast.GoToNext
 		}
 		if n, ok := node.(*ast.Heading); ok && n.HeadingID != "" {
-			idRefs[n.HeadingID] = struct{}{}
+			if _, ok := idRefs[n.HeadingID]; !ok {
+				idRefs[n.HeadingID] = struct{}{}
+				return ast.GoToNext
+			}
+			for i := 1; i < 100; i++ {
+				s := fmt.Sprintf("%s-%d", n.HeadingID, i)
+				if _, ok := idRefs[s]; !ok {
+					idRefs[s] = struct{}{}
+					return ast.GoToNext
+				}
+			}
 		}
 		return ast.GoToNext
 	}))
