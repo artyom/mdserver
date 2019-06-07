@@ -91,7 +91,6 @@ func processFile(name string, intrefs refMap) error {
 	doc := parser.NewWithExtensions(extensions).Parse(b)
 
 	idRefs := extractRefs(doc)
-
 	var hadErrors bool
 	walkFn := func(node ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
@@ -122,6 +121,8 @@ func processFile(name string, intrefs refMap) error {
 			if _, ok := idRefs[u.Fragment]; !ok {
 				hadErrors = true
 				log.Printf("%s: %q: broken link", name, dst)
+			} else if unstableRef(u.Fragment, idRefs) {
+				log.Printf(unstableSlugFormat, name, dst)
 			}
 		}
 		if u.Scheme != "" || u.Host != "" || u.Path == "" {
@@ -143,6 +144,8 @@ func processFile(name string, intrefs refMap) error {
 			if !okr {
 				hadErrors = true
 				log.Printf("%s: %q: broken link (fragment points to non-existent id)", name, dst)
+			} else if unstableRef(u.Fragment, intrefs[filename]) {
+				log.Printf(unstableSlugFormat, name, dst)
 			}
 		}
 		return ast.GoToNext
@@ -152,6 +155,16 @@ func processFile(name string, intrefs refMap) error {
 		return errDirtyRun
 	}
 	return nil
+}
+
+// unstableRef checks whether s looks something like "value-1" and allRefs also
+// has "value" in them.
+func unstableRef(s string, allRefs map[string]struct{}) bool {
+	if ok, _ := filepath.Match("*?-[1-9]", s); !ok {
+		return false
+	}
+	_, ok := allRefs[s[:len(s)-2]]
+	return ok
 }
 
 func extractRefs(doc ast.Node) map[string]struct{} {
@@ -226,5 +239,7 @@ func (m refMap) hasRef(file, ref string) (bool, bool) {
 func (m refMap) setRefs(file string, refs map[string]struct{}) { m[file] = refs }
 
 const extensions = parser.CommonExtensions | parser.AutoHeadingIDs ^ parser.MathJax
+
+const unstableSlugFormat = "%s: %q: unstable slug reference, may become incorrect on unrelated header changes"
 
 func init() { log.SetFlags(0) }

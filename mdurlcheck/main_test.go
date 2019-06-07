@@ -16,6 +16,7 @@ func TestMain(t *testing.T) {
 		t.Fatalf("wrong error value: %+v", err)
 	}
 	want := strings.TrimSpace(`
+../testdata/broken.md: "#duplicate-subheading-1": unstable slug reference, may become incorrect on unrelated header changes
 ../testdata/broken.md: "../testdata": broken link
 ../testdata/broken.md: "non-existent.md": broken link
 ../testdata/broken.md: "#bam": broken link
