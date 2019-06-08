@@ -622,7 +622,7 @@ dd p {
 }
 
 blockquote {
-	background-color: rgba(200,200,200,0.2);
+	border-left:thick solid lightgrey;
 	color: #1111111;
 	padding: 0 0.5em;
 }
