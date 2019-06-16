@@ -259,8 +259,13 @@ func (l *lazyReadSeeker) init() error {
 	if l.h.githubWiki {
 		opts.RenderNodeHook = rewriteGithubWikiLinks
 	}
-	body := markdown.ToHTML(b, parser.NewWithExtensions(extensions), html.NewRenderer(opts))
+	doc := parser.NewWithExtensions(extensions).Parse(b)
+	body := markdown.Render(doc, html.NewRenderer(opts))
 	body = policy.SanitizeBytes(body)
+	title := firstHeaderText(doc)
+	if title == "" {
+		title = nameToTitle(filepath.Base(l.name))
+	}
 	withHL := l.h.hljs && bytes.Contains(body, []byte(`<pre><code class=`))
 	page := struct {
 		Title     string
@@ -269,7 +274,7 @@ func (l *lazyReadSeeker) init() error {
 		Body      template.HTML
 		WithHL    bool
 	}{
-		Title:  nameToTitle(filepath.Base(l.name)),
+		Title:  title,
 		Body:   template.HTML(body),
 		WithHL: withHL,
 	}
@@ -374,7 +379,10 @@ func documentTitle(file string) string {
 	if err != nil {
 		return ""
 	}
-	doc := parser.New().Parse(b)
+	return firstHeaderText(parser.New().Parse(b))
+}
+
+func firstHeaderText(doc ast.Node) string {
 	var title string
 	walkFn := func(node ast.Node, entering bool) ast.WalkStatus {
 		if !entering {
