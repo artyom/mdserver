@@ -526,7 +526,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 	});
 });
 </script>{{end}}
-</head><body><nav><a href="/?index">&#10087; index</a></nav>
+</head><body><nav><a href="/?index">index</a></nav>
 <ul id="toc"></ul>
 <article>
 {{.Body}}
@@ -665,6 +665,8 @@ nav {
 	padding:.5em;
 	border-bottom: 1px solid gray;
 }
+
+nav a:before { content:"\2767\0020" }
 
 @media print {
 	nav, ul#toc {display: none}
