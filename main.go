@@ -485,7 +485,7 @@ var pageTemplate = template.Must(template.New("page").Parse(pageTpl))
 const indexTpl = `<!doctype html><head><meta charset="utf-8"><title>{{.Title}}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {{if .StyleHref}}<link rel="stylesheet" href="{{.StyleHref}}">{{end -}}
-{{if .Style}}<style>{{.Style}}</style>{{end}}</head><body>{{if .WithSearch}}<form method="get">
+{{if .Style}}<style>{{.Style}}</style>{{end}}</head><body id="mdserver-autoindex">{{if .WithSearch}}<form method="get">
 <input type="search" name="q" minlength="3" placeholder="Substring search" autofocus required>
 <input type="submit"></form>{{end}}
 <h1>{{.Title}}</h1><ul>{{$prev := "."}}
