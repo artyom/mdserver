@@ -606,7 +606,7 @@ h4, h5 {
 
 pre {
 	background-color: rgb(240,240,240);
-	color: #1111111;
+	color: #111111;
 	padding: 0.5em;
 	overflow: auto;
 }
@@ -631,7 +631,7 @@ dd p {
 
 blockquote {
 	border-left:thick solid lightgrey;
-	color: #1111111;
+	color: #111111;
 	padding: 0 0.5em;
 }
 
@@ -640,7 +640,7 @@ img {display:block;margin:auto;max-width:100%}
 table, td, th {
 	border:thin solid lightgrey;
 	border-collapse:collapse;
-	vertical-aligh:middle;
+	vertical-align:middle;
 }
 td, th {padding:0.2em 0.5em}
 tr:nth-child(even) {background-color: rgba(200,200,200,0.2)}
