@@ -204,7 +204,7 @@ func (h *mdHandler) csp(withHL bool) string {
 	switch {
 	case withHL:
 		csp = append(csp, "script-src https://cdnjs.cloudflare.com "+
-			"'sha256-fuJOTtU+swhVjMGahGvof8RbeaIDlptfQDoHubzBL9I=' "+
+			"'sha256-HGKuhVF4dzwg9Kt9XWXRYCoBYgGWsgnBiY1ynyCokzQ=' "+
 			"'sha256-qeFup2+SGOg8HaUXLE/qospaz+lv/lxjtZZVNa2AqTk='", // https://play.golang.org/p/0SUWatm_LGr
 		)
 		switch {
@@ -214,7 +214,7 @@ func (h *mdHandler) csp(withHL bool) string {
 			csp = append(csp, "style-src https://cdnjs.cloudflare.com '"+h.styleHash+"'")
 		}
 	default:
-		csp = append(csp, "script-src 'sha256-fuJOTtU+swhVjMGahGvof8RbeaIDlptfQDoHubzBL9I='")
+		csp = append(csp, "script-src 'sha256-HGKuhVF4dzwg9Kt9XWXRYCoBYgGWsgnBiY1ynyCokzQ='")
 		switch {
 		case h.linkStyle:
 			csp = append(csp, "style-src 'self'")
@@ -502,9 +502,10 @@ document.addEventListener('DOMContentLoaded', function() {
 } );
 function htmlTableOfContents( documentRef ) {
 	var documentRef = documentRef || document;
-	var toc = documentRef.getElementById("toc");
 	var headings = [].slice.call(documentRef.body.querySelectorAll('article h1, article h2, article h3, article h4, article h5, article h6'));
 	if (headings.length < 2) { return };
+	var toc = documentRef.querySelector("nav#toc details");
+	var ul = documentRef.createElement( "ul" );
 	headings.forEach(function (heading, index) {
 		var ref = heading.getAttribute( "id" );
 		var link = documentRef.createElement( "a" );
@@ -513,8 +514,9 @@ function htmlTableOfContents( documentRef ) {
 		var li = documentRef.createElement( "li" );
 		li.setAttribute( "class", heading.tagName.toLowerCase() );
 		li.appendChild( link );
-		toc.appendChild( li );
+		ul.appendChild( li );
 	});
+	toc.appendChild( ul );
 }
 </script>{{if .WithHL}}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/default.min.css" integrity="sha256-zcunqSn1llgADaIPFyzrQ8USIjX2VpuxHzUwYisOwo8=" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -526,7 +528,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
 	});
 });
 </script>{{end}}
-</head><body><nav><a href="/?index">index</a></nav>
+</head><body><nav id="site"><a href="/?index">index</a></nav>
+<nav id="toc"><details open><summary>Contents</summary></details></nav>
 <ul id="toc"></ul>
 <article>
 {{.Body}}
@@ -645,31 +648,36 @@ table, td, th {
 td, th {padding:0.2em 0.5em}
 tr:nth-child(even) {background-color: rgba(200,200,200,0.2)}
 
-ul#toc:not(:empty):before { content:"Contents:"; font-weight:bold; color:gray }
-ul#toc:not(:empty):after {
+nav#toc {margin:1em 0 1em 0}
+nav#toc summary {font-weight:bold; color:gray}
+nav#toc ul:after {
 	content:"\2042";
 	text-align:center;
 	display:block;
 	color:gray;
 }
-ul#toc {list-style: none;padding-left:0}
-ul#toc li.h2 {padding-left:1em}
-ul#toc li.h3 {padding-left:2em}
-ul#toc li.h4 {padding-left:3em}
-ul#toc li.h5 {padding-left:4em}
-ul#toc li.h6 {padding-left:5em}
+nav#toc ul {margin:0; list-style:none; padding-left:0}
+nav#toc ul li.h2 {padding-left:1em}
+nav#toc ul li.h3 {padding-left:2em}
+nav#toc ul li.h4 {padding-left:3em}
+nav#toc ul li.h5 {padding-left:4em}
+nav#toc ul li.h6 {padding-left:5em}
 
-nav {
+nav#site {
 	font-size:90%;
 	text-align:right;
 	padding:.5em;
 	border-bottom: 1px solid gray;
 }
+nav#site a:before {content:"\2767\0020"}
 
-nav a:before { content:"\2767\0020" }
+footer summary {font-weight:bold; color:gray}
+
+summary {cursor:pointer; outline:none}
+summary:only-child {display:none}
 
 @media print {
-	nav, ul#toc {display: none}
+	nav {display: none}
 	pre {overflow-wrap:break-word; white-space:pre-wrap}
 }`
 
