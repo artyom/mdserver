@@ -1,0 +1,13 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  assignees:
+  - artyom
+  ignore:
+  - dependency-name: github.com/microcosm-cc/bluemonday
+    versions:
+    - "> 1.0.3, < 1.1"
